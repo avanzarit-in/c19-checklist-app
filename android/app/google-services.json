@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "957058770306",
+    "firebase_url": "https://auth-avanzarit-in.firebaseio.com",
+    "project_id": "auth-avanzarit-in",
+    "storage_bucket": "auth-avanzarit-in.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:957058770306:android:8a30519a888aa0bb125b9b",
+        "android_client_info": {
+          "package_name": "com.avanzarit.c19checklist"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "957058770306-hkqr219fi1dvlihgnebrkt3vn2jrd9po.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.avanzarit.c19checklist",
+            "certificate_hash": "6e93cc73f2c71cc4bd30da3d4d6c97792367b967"
+          }
+        },
+        {
+          "client_id": "957058770306-iss2u4am8585cmjqpqafpprbd28v6sql.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVpxlPKMUGpD1mlYIo0i-LfpnECOL-xvQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "957058770306-iss2u4am8585cmjqpqafpprbd28v6sql.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
