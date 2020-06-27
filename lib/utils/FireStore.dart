@@ -35,4 +35,19 @@ class FireStore {
       return false;
     }
   }
+
+  ///[data] argument is dual param used for fetching data
+  ///Fetch data based on dual condition
+  Future getDataFromDualClause(
+      data, clauseNameOne, clauseNameTwo, collection) async {
+    try {
+      CollectionReference col = Firestore.instance.collection(collection);
+      Query qry = col.where(clauseNameOne.toString(), isEqualTo: data['date']);
+      Query nameValorQuery =
+          qry.where(clauseNameTwo.toString(), isEqualTo: data['userNumber']);
+      return await nameValorQuery.getDocuments();
+    } on PlatformException {
+      return false;
+    }
+  }
 }

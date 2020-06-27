@@ -1,7 +1,9 @@
+import 'package:c19checklist/SubmitSuccess.dart';
 import 'package:c19checklist/utils/PageTransition.dart';
 import 'package:c19checklist/utils/Preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:c19checklist/Login.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:c19checklist/utils/FireStore.dart';
 
@@ -15,6 +17,7 @@ class _DashboardState extends State<Dashboard> {
   GlobalKey<ScaffoldState> _qState = GlobalKey<ScaffoldState>();
   Preferences _preferences = new Preferences();
   FireStore _fireStore = new FireStore();
+  String formattedDate;
   String _radioValue; //Initial definition of radio button value
   String choice;
 
@@ -135,66 +138,137 @@ class _DashboardState extends State<Dashboard> {
     'Headache': false
   };
 
+  bool showForm = false;
+
+  _checkTodayData() async {
+    Map storedValue = await _preferences.getPrefs();
+    setState(() {
+      _loading = true;
+    });
+    DateTime now = DateTime.now();
+    formattedDate = DateFormat('yyyy-MM-dd').format(now);
+    var checkDoc = await _fireStore.getDataFromDualClause(
+        {'date': formattedDate.toString(), 'userNumber': storedValue['number']},
+        'submittedDate',
+        'submittedBy',
+        'dailyStatus');
+    if (checkDoc.documents.length == 0) {
+      setState(() {
+        showForm = true;
+        _loading = false;
+      });
+    } else {
+      setState(() {
+        showForm = false;
+        _loading = false;
+      });
+    }
+  }
+
   @override
   void setState(fn) {
     if (mounted) super.setState(fn);
   }
 
   @override
+  void initState() {
+    _checkTodayData();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _qState,
-      appBar: AppBar(
-        backgroundColor: Colors.deepOrange,
-        // elevation: 0,
-        title: Text(
-          'Dashboard',
-          style: TextStyle(color: Colors.white),
+    return WillPopScope(
+      onWillPop: () {
+        return _moveOffScreen();
+      },
+      child: Scaffold(
+        key: _qState,
+        appBar: AppBar(
+          backgroundColor: Colors.deepOrange,
+          // elevation: 0,
+          title: Text(
+            'Dashboard',
+            style: TextStyle(color: Colors.white),
+          ),
+          automaticallyImplyLeading: false,
+          actions: [
+            FlatButton(
+              onPressed: () {
+                _logOutUser();
+              },
+              child: Icon(
+                Icons.power_settings_new,
+                color: Colors.white,
+              ),
+            )
+          ],
         ),
-        automaticallyImplyLeading: false,
-        actions: [
-          FlatButton(
-            onPressed: () {
-              _logOutUser();
-            },
-            child: Icon(
-              Icons.power_settings_new,
-              color: Colors.white,
-            ),
-          )
-        ],
-      ),
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: dashboardLayout(),
+        backgroundColor: Colors.white,
+        body: SingleChildScrollView(
+          child: dashboardLayout(),
+        ),
       ),
     );
   }
 
+  _moveOffScreen() {
+    SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+  }
+
   Widget dashboardLayout() {
-    return Container(
-        padding: EdgeInsets.all(20),
-        child: Form(
-          key: _qForm,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              questionOne(),
-              questionOneOptions(),
-              questionTwo(),
-              questionTwoOptions(),
-              questionThree(),
-              questionThreeOptions(),
-              questionFour(),
-              questionFourOptions(),
-              questionFive(),
-              questionFiveOptions(),
-              questionSix(),
-              questionSixOptions(),
-              submitButton()
-            ],
-          ),
-        ));
+    return (_loading)
+        ? Container(
+            padding: EdgeInsets.all(20),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          )
+        : (showForm)
+            ? Container(
+                padding: EdgeInsets.all(20),
+                child: Form(
+                  key: _qForm,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      questionOne(),
+                      questionOneOptions(),
+                      questionTwo(),
+                      questionTwoOptions(),
+                      questionThree(),
+                      questionThreeOptions(),
+                      questionFour(),
+                      questionFourOptions(),
+                      questionFive(),
+                      questionFiveOptions(),
+                      questionSix(),
+                      questionSixOptions(),
+                      submitButton()
+                    ],
+                  ),
+                ))
+            : Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Image.asset(
+                      'assets/images/done.png',
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.high,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(0, 20, 0, 20),
+                      child: Text(
+                        'You have already submitted the details for today',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 20),
+                      ),
+                    )
+                  ],
+                ),
+              );
   }
 
   Widget questionOne() {
@@ -498,7 +572,7 @@ class _DashboardState extends State<Dashboard> {
             child: RaisedButton(
               color: Colors.deepOrange,
               onPressed: () {
-                _submitForm();
+                _submitForm(context);
               },
               child: Text(
                 'Submit',
@@ -508,14 +582,9 @@ class _DashboardState extends State<Dashboard> {
           );
   }
 
-  _submitForm() async {
+  _submitForm(context) async {
     Map storedValue = await _preferences.getPrefs();
-    setState(() {
-      _loading = true;
-    });
     Map<String, dynamic> formData = {};
-    DateTime now = DateTime.now();
-    String formattedDate = DateFormat('yyyy-MM-dd').format(now);
     formData['questionOne'] = qOne;
     formData['questionTwo'] = choice;
     formData['questionThree'] = choiceThree;
@@ -524,17 +593,68 @@ class _DashboardState extends State<Dashboard> {
     formData['questionSix'] = choiceSix;
     formData['submittedDate'] = formattedDate.toString();
     formData['submittedBy'] = storedValue['number'];
+    if (choiceThree == null ||
+        choice == null ||
+        choiceFour == null ||
+        choiceFive == null ||
+        choiceSix == null) {
+      _qState.currentState.showSnackBar(SnackBar(
+        content: Text('Select Radio button Options for all'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } else
+      _showAlertButton(context, formData);
+  }
+
+  _showAlertButton(context, submitableData) {
+    // set up the buttons
+    Widget cancelButton = FlatButton(
+      child: Text("No"),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    );
+    Widget continueButton = FlatButton(
+      child: Text("Yes"),
+      onPressed: () async {
+        Navigator.pop(context);
+        await _submitTheData(submitableData);
+      },
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Confirm"),
+      content: Text("Are you sure to submit ?"),
+      actions: [
+        cancelButton,
+        continueButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
+  _submitTheData(data) async {
+    setState(() {
+      _loading = true;
+    });
     try {
-      var formDoc = await _fireStore.addData(formData, 'dailyStatus');
+      var formDoc = await _fireStore.addData(data, 'dailyStatus');
       if (formDoc.documentID != '') {
         setState(() {
           _loading = false;
         });
-        _qState.currentState.showSnackBar(SnackBar(
-          content: Text('Submitted Successfully'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ));
+        await Navigator.push(context, PageTransition(SubmitSuccess()));
+        setState(() {
+          _checkTodayData();
+        });
       } else {
         setState(() {
           _loading = false;
