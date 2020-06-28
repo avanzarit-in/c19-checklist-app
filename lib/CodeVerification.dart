@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:c19checklist/utils/Errordialog.dart';
 import 'package:device_info/device_info.dart';
 import 'package:c19checklist/utils/Preferences.dart';
+import 'package:flutter/services.dart';
 
 class CodeVerification extends StatefulWidget {
   final String verificationId;
@@ -20,6 +21,7 @@ class CodeVerification extends StatefulWidget {
 
 class _CodeVerificationState extends State<CodeVerification> {
   final GlobalKey<FormState> _codeKey = GlobalKey<FormState>();
+  final GlobalKey<ScaffoldState> _codeState = GlobalKey<ScaffoldState>();
   TextEditingController _codeController = TextEditingController();
   CustomErrorDialog _customErrorDialog = new CustomErrorDialog();
   Preferences _preferences = new Preferences();
@@ -30,6 +32,7 @@ class _CodeVerificationState extends State<CodeVerification> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _codeState,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -104,31 +107,42 @@ class _CodeVerificationState extends State<CodeVerification> {
         _codeloading = true;
         _codeValidate = false;
       });
-      AuthCredential credential = PhoneAuthProvider.getCredential(
-          verificationId: widget.verificationId,
-          smsCode: _codeController.text.trim());
-      AuthResult result =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-      FirebaseUser user = result.user;
-      if (user != null) {
-        if (widget.type == 'reg') {
-          widget.regData['deviceId'] =
-              await _getDeviceId(await DeviceInfoPlugin().androidInfo);
-          var doc = await _fireStore.addData(widget.regData, 'registeredUser');
-          if (doc.documentID != '') {
-            widget.regData['documentId'] = doc.documentID;
+      try {
+        AuthCredential credential = PhoneAuthProvider.getCredential(
+            verificationId: widget.verificationId,
+            smsCode: _codeController.text.trim());
+        AuthResult result =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+        FirebaseUser user = result.user;
+        if (user != null) {
+          if (widget.type == 'reg') {
+            widget.regData['deviceId'] =
+                await _getDeviceId(await DeviceInfoPlugin().androidInfo);
+            var doc =
+                await _fireStore.addData(widget.regData, 'registeredUser');
+            if (doc.documentID != '') {
+              widget.regData['documentId'] = doc.documentID;
+              if (await _preferences.setPrefs(widget.regData)) {
+                Navigator.pushReplacement(context, PageTransition(Dashboard()));
+              }
+            }
+          } else {
             if (await _preferences.setPrefs(widget.regData)) {
               Navigator.pushReplacement(context, PageTransition(Dashboard()));
             }
           }
         } else {
-          if (await _preferences.setPrefs(widget.regData)) {
-            Navigator.pushReplacement(context, PageTransition(Dashboard()));
-          }
+          _customErrorDialog.showErrorDialog(
+              context, 'An error occurred while validating');
         }
-      } else {
-        _customErrorDialog.showErrorDialog(
-            context, 'An error occurred while validating');
+      } on PlatformException catch (e) {
+        setState(() {
+          _codeloading = false;
+        });
+        _codeState.currentState.showSnackBar(SnackBar(
+          content: Text(e.message.toString()),
+          behavior: SnackBarBehavior.fixed,
+        ));
       }
     } else {
       setState(() {
