@@ -1,3 +1,4 @@
+import 'package:c19checklist/Details.dart';
 import 'package:c19checklist/SubmitSuccess.dart';
 import 'package:c19checklist/utils/PageTransition.dart';
 import 'package:c19checklist/utils/Preferences.dart';
@@ -264,6 +265,23 @@ class _DashboardState extends State<Dashboard> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                             fontWeight: FontWeight.w700, fontSize: 20),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(0, 20, 0, 20),
+                      child: InkWell(
+                        onTap: () async {
+                          await Navigator.push(
+                              context, PageTransition(Details()));
+                        },
+                        child: Text(
+                          'View Details',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: Colors.blue),
+                        ),
                       ),
                     )
                   ],
